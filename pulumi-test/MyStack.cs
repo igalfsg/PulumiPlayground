@@ -57,46 +57,63 @@ class MyStack : Stack
         });
         //ref https://www.pulumi.com/docs/reference/pkg/azure/keyvault/keyvault/
         var current = Output.Create(Pulumi.Azure.Core.GetClientConfig.InvokeAsync());
-        // var exampleKeyVault = new KeyVault("exampleKeyVault", new Pulumi.Azure.KeyVault.KeyVaultArgs
-        // {
-        //     Location = resourceGroup.Location,
-        //     ResourceGroupName = resourceGroup.Name,
-        //     EnabledForDiskEncryption = true,
-        //     TenantId = current.Apply(current => current.TenantId),
-        //     SoftDeleteEnabled = true,
-        //     SoftDeleteRetentionDays = 7,
-        //     PurgeProtectionEnabled = false,
-        //     SkuName = "standard",
-        //     AccessPolicies = 
-        //     {
-        //         new KeyVaultAccessPolicyArgs
-        //         {
-        //             TenantId = current.Apply(current => current.TenantId),
-        //             ObjectId = current.Apply(current => current.ObjectId),
-        //             KeyPermissions = 
-        //             {
-        //                 "get",
-        //             },
-        //             SecretPermissions = 
-        //             {
-        //                 "get",
-        //             },
-        //             StoragePermissions = 
-        //             {
-        //                 "get",
-        //             },
-        //         },
-        //     },
-        //     NetworkAcls = new KeyVaultNetworkAclsArgs
-        //     {
-        //         DefaultAction = "Deny",
-        //         Bypass = "AzureServices",
-        //     },
-        //     Tags = 
-        //     {
-        //         { "environment", "Testing" },
-        //     },
-        // });
+        var exampleKeyVault = new KeyVault("exampleKeyVault", new Pulumi.Azure.KeyVault.KeyVaultArgs
+        {
+            Location = resourceGroup.Location,
+            ResourceGroupName = resourceGroup.Name,
+            EnabledForDiskEncryption = true,
+            TenantId = current.Apply(current => current.TenantId),
+            SoftDeleteEnabled = true,
+            SoftDeleteRetentionDays = 7,
+            PurgeProtectionEnabled = false,
+            SkuName = "standard",
+            AccessPolicies = 
+            {
+                new KeyVaultAccessPolicyArgs
+                {
+                    TenantId = current.Apply(current => current.TenantId),
+                    ObjectId = current.Apply(current => current.ObjectId),
+                    KeyPermissions = 
+                    {
+                        "get",
+                    },
+                    SecretPermissions = 
+                    {
+                        "get",
+                    },
+                    StoragePermissions = 
+                    {
+                        "get",
+                    },
+                },
+                new KeyVaultAccessPolicyArgs
+                {
+                    TenantId = current.Apply(current => current.TenantId),
+                    ObjectId =  webapp.Identity.Apply(x => x.PrincipalId),
+                    KeyPermissions = 
+                    {
+                        "create",
+                    },
+                    SecretPermissions = 
+                    {
+                        "set",
+                    },
+                    StoragePermissions = 
+                    {
+                        "set",
+                    },
+                },
+            },
+            NetworkAcls = new KeyVaultNetworkAclsArgs
+            {
+                DefaultAction = "Deny",
+                Bypass = "AzureServices",
+            },
+            Tags = 
+            {
+                { "environment", "Testing" },
+            },
+        });
 
 
         // Export the connection string for the storage account
@@ -108,6 +125,7 @@ class MyStack : Stack
     [Output]
     // public Output<string> ConnectionString { get; set; }
     public Output<string> appID { get; set; }
+    [Output]
     public Output<string> Outbound { get; set; }
 
 }
