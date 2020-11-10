@@ -155,7 +155,7 @@ class MyStack : Stack
             Members = { webapp.Identity.Apply(x => x.PrincipalId) },
         });
 
-        add aad admin to server
+        //add aad admin to server
         var primarySQLAADAdmin = new Pulumi.Azure.Sql.ActiveDirectoryAdministrator("exampleActiveDirectoryAdministrator", 
             new Pulumi.Azure.Sql.ActiveDirectoryAdministratorArgs
         {
@@ -232,7 +232,7 @@ class MyStack : Stack
         var secret = new Secret("paymentApiKey", new SecretArgs
         {
             KeyVaultId = webappAKV.Id,
-            Value = "ddd"//serviceBus.Id,
+            Value = serviceBus.DefaultPrimaryKey,
         });
 
         // Export the connection string for the storage account
