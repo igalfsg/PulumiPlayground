@@ -7,8 +7,8 @@ using Pulumi.Azure.KeyVault.Inputs;
 using Pulumi.Azure.AppService.Inputs;
 using Pulumi.Azure.AppInsights;
 using AzureAD = Pulumi.AzureAD;
-
-
+using System.Security.Cryptography;
+using System;
 
 class MyStack : Stack
 {
@@ -40,7 +40,7 @@ class MyStack : Stack
             Location = resourceGroup.Location,
             Version = "12.0",
             AdministratorLogin = "sqladmin",
-            AdministratorLoginPassword = "pa$$w0rd",
+            AdministratorLoginPassword = Password.Generate(32, 12),
         });
         var secondary = new Pulumi.Azure.Sql.SqlServer("secondary", new Pulumi.Azure.Sql.SqlServerArgs
         {
@@ -48,7 +48,7 @@ class MyStack : Stack
             Location = "northeurope",
             Version = "12.0",
             AdministratorLogin = "sqladmin",
-            AdministratorLoginPassword = "pa$$w0rd",
+            AdministratorLoginPassword = Password.Generate(32, 12),
         });
         
         var sqlLogs = new Pulumi.Azure.Storage.Account("sqllogs", new Pulumi.Azure.Storage.AccountArgs
@@ -232,7 +232,7 @@ class MyStack : Stack
         var secret = new Secret("paymentApiKey", new SecretArgs
         {
             KeyVaultId = webappAKV.Id,
-            Value = serviceBus.DefaultPrimaryKey,
+            Value = serviceBus.DefaultPrimaryConnectionString,
         });
 
         // Export the connection string for the storage account
@@ -247,4 +247,77 @@ class MyStack : Stack
     public Output<string> akvurl { get; set; }
     [Output]
     public Output<string> secretURL { get; set; }
+}
+
+public static class Password
+{
+    private static readonly char[] Punctuations = "!@#$%^&*()_-+=[{]};:>|./?".ToCharArray();
+
+    public static string Generate(int length, int numberOfNonAlphanumericCharacters)
+    {
+        if (length < 1 || length > 128)
+        {
+            throw new ArgumentException(nameof(length));
+        }
+
+        if (numberOfNonAlphanumericCharacters > length || numberOfNonAlphanumericCharacters < 0)
+        {
+            throw new ArgumentException(nameof(numberOfNonAlphanumericCharacters));
+        }
+
+        using (var rng = RandomNumberGenerator.Create())
+        {
+            var byteBuffer = new byte[length];
+
+            rng.GetBytes(byteBuffer);
+
+            var count = 0;
+            var characterBuffer = new char[length];
+
+            for (var iter = 0; iter < length; iter++)
+            {
+                var i = byteBuffer[iter] % 87;
+
+                if (i < 10)
+                {
+                    characterBuffer[iter] = (char)('0' + i);
+                }
+                else if (i < 36)
+                {
+                    characterBuffer[iter] = (char)('A' + i - 10);
+                }
+                else if (i < 62)
+                {
+                    characterBuffer[iter] = (char)('a' + i - 36);
+                }
+                else
+                {
+                    characterBuffer[iter] = Punctuations[i - 62];
+                    count++;
+                }
+            }
+
+            if (count >= numberOfNonAlphanumericCharacters)
+            {
+                return new string(characterBuffer);
+            }
+
+            int j;
+            var rand = new Random();
+
+            for (j = 0; j < numberOfNonAlphanumericCharacters - count; j++)
+            {
+                int k;
+                do
+                {
+                    k = rand.Next(0, length);
+                }
+                while (!char.IsLetterOrDigit(characterBuffer[k]));
+
+                characterBuffer[k] = Punctuations[rand.Next(0, Punctuations.Length)];
+            }
+
+            return new string(characterBuffer);
+        }
+    }
 }
